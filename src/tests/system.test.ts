@@ -113,6 +113,24 @@ describe("parquet", () => {
   });
 });
 
+describe("resultados do Colab", () => {
+  it("dataset/predictions.jsonl cobre o teste atual nos 4 modos, com as mesmas referências", () => {
+    const rows = readFileSync("dataset/predictions.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>);
+    const test = records.filter((r) => r.split === "test");
+    const modes = ["base_sem_grounding", "base_com_grounding", "ft_com_grounding", "ft_sem_grounding"];
+    assert.equal(rows.length, test.length * modes.length);
+    for (const mode of modes) {
+      for (const r of test) {
+        const row = rows.find((x) => x.id === r.id && x.mode === mode);
+        assert.ok(row, `${r.id}/${mode} ausente`);
+        assert.equal(row.reference, r.answer, `${r.id}: predição feita sobre outra versão do dataset`);
+        assert.equal(row.context, r.context);
+        assert.equal(typeof row.prediction, "string");
+      }
+    }
+  });
+});
+
 describe("notebook", () => {
   it("é JSON válido, injeta a mesma estrutura de contexto e está atualizado no disco", () => {
     const content = buildNotebook();

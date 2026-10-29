@@ -12,6 +12,25 @@ compara o comportamento **com e sem grounding** e com e sem **fine-tuning (QLoRA
 - **Fine-tuning QLoRA + LoRA** no Google Colab (T4): [colab/finetune_qlora.ipynb](colab/finetune_qlora.ipynb).
 - **Avaliação quantitativa**: [colab/avaliacao.py](colab/avaliacao.py) para as respostas dos modelos e `npm run eval` para a recuperação.
 - **Justificativa e orientação de aplicabilidade**: [docs/justificativa.md](docs/justificativa.md).
+- **Análise comparativa com resultados reais**: [docs/analise-comparativa.md](docs/analise-comparativa.md).
+
+## Resultados (execução real no Colab, 20 perguntas de teste)
+
+| Modo | Acurácia factual ↑ | Citação correta ↑ | Recusa fora da base ↑ | Alucinação ↓ | Score geral ↑ |
+|---|---|---|---|---|---|
+| Base, sem grounding | 0.0% | 0.0% | 50.0% | 30.0% | 30.0% |
+| Base, com grounding (só prompt) | 90.6% | 0.0% | 50.0% | 10.0% | 57.7% |
+| **Fine-tunado, com grounding** | **90.6%** | **93.8%** | **75.0%** | **5.0%** | **88.6%** |
+| Fine-tunado, sem grounding | 3.1% | 0.0% | 25.0% | 35.0% | 23.3% |
+
+- **O grounding gera a precisão.** Sem documentos, o modelo não acerta nenhum fato da empresa; com documentos, acerta
+  90,6% e a alucinação cai de 30% para 10%.
+- **O fine-tuning gera o comportamento.** O modelo passa a citar a fonte em 93,8% das respostas (antes, 0%), recusa mais
+  perguntas fora da base e mantém a acurácia. O score geral sobe de 57,7% para 88,6%.
+- **O fine-tuning não substitui a base.** Sem documentos, o modelo treinado inventa políticas (3,1% de acurácia, 35% de
+  alucinação).
+- **Ainda erra** em distratores fortes (te-18: "limite do cartão corporativo" respondido com o limite de hotel) e em
+  regras com exceção (te-15). Detalhes e próximos passos estão na [análise comparativa](docs/analise-comparativa.md).
 
 Zero dependências de runtime: o Node 24 executa TypeScript direto, e o Parquet é gravado por um writer próprio
 ([src/parquet.ts](src/parquet.ts)). O script de avaliação usa só a biblioteca padrão do Python.
@@ -52,6 +71,19 @@ npm test
 Sem configuração, o `ask` usa um **LLM extrativo local** (offline, determinístico). Com `OPENAI_API_KEY`, ou com
 `LLM_BASE_URL` apontando para um servidor compatível com a API da OpenAI (Ollama, vLLM, llama.cpp servindo o
 **modelo fine-tunado**), usa o modelo real. Nesse caso `--compare` mostra a mesma pergunta respondida com e sem grounding.
+
+### Usar o adaptador treinado
+
+```python
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-1.5B-Instruct", dtype="auto", device_map="auto")
+model = PeftModel.from_pretrained(base, "lora-adapter")  # pasta extraída de adapter/lora-adapter.zip
+tokenizer = AutoTokenizer.from_pretrained("lora-adapter")
+```
+
+Para servir pela CLI: `model.merge_and_unload()`, exportar para Ollama/vLLM e apontar `LLM_BASE_URL`/`LLM_MODEL` no `.env`.
 
 ### Fine-tuning no Colab
 
@@ -143,7 +175,7 @@ Exemplos legíveis: [docs/exemplos.md](docs/exemplos.md).
 | Base | `Qwen/Qwen2.5-1.5B-Instruct`, 4-bit NF4 + double quant (QLoRA) |
 | LoRA | r=16, alpha=32, dropout 0.05, `q_proj`/`k_proj`/`v_proj`/`o_proj` |
 | Treino | TRL `SFTTrainer`, formato *prompt-completion* (loss só na resposta), 3 épocas, batch 4, lr 2e-4 cosine, fp16 |
-| Saída | adaptador LoRA (`lora-adapter.zip`), alguns MB |
+| Saída | adaptador LoRA em [adapter/lora-adapter.zip](adapter/lora-adapter.zip) (~17 MB de pesos; config em [adapter/adapter_config.json](adapter/adapter_config.json)) |
 
 ## Avaliação e análise comparativa
 
@@ -157,9 +189,14 @@ O notebook roda o conjunto de teste em **4 modos** e o `avaliacao.py` compara to
 | Fine-tunado, sem grounding | O fine-tuning substitui a base? (esperado: não) |
 
 Métricas: acurácia factual, respostas completas, citação correta, recusa fora da base, falsa recusa, taxa de
-alucinação e score geral. As definições estão em [docs/baseline.md](docs/baseline.md). Os números saem da execução no
-Colab: o relatório (`relatorio-avaliacao.md`) é gerado com as respostas reais e não há resultados estimados no repositório.
-Para regerar o relatório localmente:
+alucinação e score geral. As definições estão em [docs/baseline.md](docs/baseline.md).
+
+- **Resultados reais**: [docs/relatorio-avaliacao.md](docs/relatorio-avaliacao.md), com o detalhamento por pergunta e
+  exemplos de respostas.
+- **Respostas brutas**: [dataset/predictions.jsonl](dataset/predictions.jsonl), 80 respostas (20 perguntas × 4 modos).
+- **Leitura dos números**: [docs/analise-comparativa.md](docs/analise-comparativa.md).
+
+O relatório é reproduzível a partir das respostas brutas:
 
 ```bash
 python colab/avaliacao.py dataset/predictions.jsonl --report docs/relatorio-avaliacao.md
@@ -184,9 +221,11 @@ src/
   notebook/              gerador do notebook do Colab
   eval/                  avaliação da recuperação
   tests/                 testes (node:test)
-dataset/                 train/test em .parquet e .jsonl (gerados)
+dataset/                 train/test em .parquet e .jsonl (gerados) + predictions.jsonl (respostas reais do Colab)
 colab/                   finetune_qlora.ipynb (gerado) e avaliacao.py
-docs/                    justificativa, baseline, exemplos, relatório de recuperação
+adapter/                 adaptador LoRA treinado (lora-adapter.zip) e sua configuração
+docs/                    justificativa, baseline, análise comparativa, relatório de avaliação,
+                         exemplos, relatório de recuperação
 ```
 
 ## Limitações
@@ -194,8 +233,13 @@ docs/                    justificativa, baseline, exemplos, relatório de recupe
 - O BM25 é lexical. Sinônimos distantes ("casar" × "casamento") têm cobertura baixa, e por isso o threshold é baixo. O
   stemmer foi ajustado olhando estas mesmas perguntas, então o Recall@3 de 100% é otimista para perguntas novas. Um
   próximo passo é a busca híbrida com embeddings, já usada no projeto `healthcare-policy-rag-cli`.
-- 50 exemplos bastam para ensinar formato e recusa, mas a medição em 20 perguntas tem variância alta: cada pergunta
-  vale 5 p.p. Para decidir sobre produção, amplie o teste.
+- 50 exemplos bastaram para ensinar formato e citação, mas a medição em 20 perguntas tem variância alta. Cada pergunta
+  vale 5 p.p. no total e 25 p.p. na recusa fora da base, que tem só 4 perguntas. Para decidir sobre produção, amplie o
+  teste.
+- Sem documentos, o modelo fine-tunado não recusa, porque todo exemplo de treino tinha contexto. Em produção o pipeline
+  sempre envia contexto, mas exemplos com `<documentos>` vazio no treino fechariam essa lacuna.
+- A métrica de alucinação só detecta números fora do contexto e respostas dadas a perguntas fora da base. Por isso ela
+  subestima a alucinação "textual" do modelo sem grounding (ex.: leis inventadas sem números).
 - As métricas são automáticas (fatos obrigatórios, números fora do contexto, padrões de recusa). Elas podem não
   reconhecer uma paráfrase correta ou uma recusa com redação incomum. Vale complementar com revisão humana ou
   LLM-as-judge.

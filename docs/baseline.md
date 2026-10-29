@@ -64,14 +64,31 @@ Os fatos obrigatórios são comparados em forma canônica (sem acentos e pontua�
 "R$ 1.000,00", "R$1.000" e "1.000 reais" casam com o fato `1 000`. Os testes do projeto garantem que cada fato
 obrigatório aparece **na resposta de referência e na seção-fonte**: a régua é a própria base de conhecimento.
 
-## Resultados
+## Resultados da baseline
 
-Os números são gerados ao rodar o notebook — não há números estimados neste documento. A célula da seção 4 imprime a
-tabela da baseline; ao final, a seção 7 gera `relatorio-avaliacao.md` com os quatro modos lado a lado (baseline +
-fine-tunado), as diferenças em pontos percentuais, o resultado por pergunta e exemplos de respostas.
+Execução real no Google Colab (GPU T4), nas 20 perguntas de teste:
 
-Depois de rodar, copie `predictions.jsonl` para `dataset/` e `relatorio-avaliacao.md` para `docs/`. Para regerar o
-relatório a qualquer momento:
+| Modo | Acurácia factual ↑ | Respostas completas ↑ | Citação correta ↑ | Recusa fora da base ↑ | Falsa recusa ↓ | Alucinação ↓ | Score geral ↑ |
+|---|---|---|---|---|---|---|---|
+| Base, sem grounding | 0.0% | 0.0% | 0.0% | 50.0% | 18.8% | 30.0% | 30.0% |
+| Base, com grounding (só prompt) | 90.6% | 87.5% | 0.0% | 50.0% | 0.0% | 10.0% | 57.7% |
+
+O que a baseline mostra:
+
+- **Sem grounding**: nenhum fato da empresa está correto. O modelo inventa leis e processos (ex.: te-01 cita uma
+  "lei 7.347/86" e uma "licença-secreto") ou se esquiva com "consulte o RH". Os 50% de "recusa" são essas evasivas,
+  não recusas fundamentadas.
+- **Com grounding, só pelo prompt**: a acurácia sobe para 90,6%, então o contexto resolve o conteúdo. O comportamento
+  pedido no system prompt, porém, não é seguido:
+  - **nenhuma** resposta traz a linha `Fonte: [ID]`;
+  - metade das perguntas fora da base é respondida com conteúdo de trechos parecidos;
+  - no te-20, o modelo inventa um processo de reajuste e ainda cita `[POL-SEGURANCA]`.
+
+  Essa é exatamente a lacuna que o fine-tuning deveria fechar.
+
+A comparação com o modelo fine-tunado está em [analise-comparativa.md](analise-comparativa.md), e o detalhamento por
+pergunta, em [relatorio-avaliacao.md](relatorio-avaliacao.md). As respostas brutas estão em
+[dataset/predictions.jsonl](../dataset/predictions.jsonl). Para regerar o relatório:
 
 ```bash
 python colab/avaliacao.py dataset/predictions.jsonl --report docs/relatorio-avaliacao.md

@@ -97,3 +97,13 @@ A hipótese é confirmada se:
 2. **fine-tunado com grounding** > **base com grounding** em recusa fora da base, citação e alucinação, sem perder
    acurácia factual → o fine-tuning agrega o comportamento que o prompt sozinho não garante;
 3. **fine-tunado sem grounding** não acerta os fatos (e, de preferência, recusa) → o fine-tuning não substitui a base.
+
+### Resultado (execução real no Colab)
+
+| Hipótese | Resultado |
+|---|---|
+| 1. Grounding é necessário | ✅ Acurácia factual 0% → 90,6%; alucinação 30% → 10%. |
+| 2. Fine-tuning agrega comportamento sem perder acurácia | ✅ com ressalvas: citação 0% → 93,8%, recusa fora da base 50% → 75%, alucinação 10% → 5%, acurácia mantida (90,6%), score 57,7% → 88,6%. Os ganhos de recusa e alucinação equivalem a uma pergunta cada (amostra pequena), e um distrator forte (te-18) ainda engana o modelo. |
+| 3. Fine-tuning não substitui a base | ✅ Sem documentos, o fine-tunado acerta 3,1% dos fatos e alucina 35%. Ele também não aprendeu a recusar sem contexto, porque todo exemplo de treino tinha documentos. |
+
+Análise completa: [analise-comparativa.md](analise-comparativa.md).
