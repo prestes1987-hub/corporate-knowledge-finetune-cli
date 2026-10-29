@@ -8,7 +8,7 @@
 | Item | Valor |
 |---|---|
 | Modelo base | `Qwen/Qwen2.5-1.5B-Instruct` |
-| Quantização | 4-bit NF4, double quantization, compute dtype fp16 (`BitsAndBytesConfig`); demais camadas em fp16 — a mesma base usada no QLoRA |
+| Quantização | 4-bit NF4, double quantization, compute dtype fp16 (`BitsAndBytesConfig`), a mesma base usada no QLoRA. Na execução registrada, as camadas não quantizadas ficaram no dtype padrão do checkpoint; a versão limpa do notebook fixa fp16 |
 | Geração | greedy (`do_sample=False`), `max_new_tokens=200`, chat template do modelo |
 | Conjunto de teste | `dataset/test.parquet` — 20 perguntas: 15 na base, 1 multi-documento, 4 fora da base |
 | Contexto (modo com grounding) | 3 trechos recuperados por BM25, formatados por `src/context.ts` (coluna `prompt`) |
@@ -97,5 +97,5 @@ python colab/avaliacao.py dataset/predictions.jsonl --report docs/relatorio-aval
 ## Como reproduzir
 
 1. `npm run build-dataset` (gera `dataset/train.parquet` e `dataset/test.parquet`).
-2. Abra `colab/finetune_qlora.ipynb` no Colab com GPU T4 e envie `train.parquet`, `test.parquet` e `avaliacao.py`.
+2. Abra `colab/finetune_qlora_limpo.ipynb` no Colab com GPU T4 e envie `train.parquet`, `test.parquet` e `avaliacao.py`.
 3. Execute até a seção 4 para obter só a baseline, ou o notebook inteiro para a comparação completa.

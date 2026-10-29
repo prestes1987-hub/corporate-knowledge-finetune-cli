@@ -15,7 +15,7 @@ import { Retriever } from "./retrieval.ts";
 const HELP = `Uso:
   npm run kb                                 lista a base de conhecimento (documentos e seções)
   npm run build-dataset                      gera dataset/{train,test}.{jsonl,parquet} e docs/exemplos.md
-  npm run notebook                           gera colab/finetune_qlora.ipynb
+  npm run notebook                           gera colab/finetune_qlora_limpo.ipynb (versão sem saídas)
   npm run ask -- "pergunta" [opções]         responde com grounding na base
   npm run ask -- [opções]                    modo interativo
   npm run eval                               avalia a recuperação e gera docs/retrieval-report.md
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
   switch (command) {
     case "kb": return listKnowledgeBase(config);
     case "build-dataset": return buildDataset(config);
-    case "notebook": return writeOutput("colab/finetune_qlora.ipynb", buildNotebook());
+    case "notebook": return writeOutput("colab/finetune_qlora_limpo.ipynb", buildNotebook());
     case "ask": return ask(config, args.join(" ").trim(), { grounding: !values["no-grounding"], compare: values.compare ?? false });
     case "eval": return evalRetrieval(config);
     default: throw new Error(`Comando desconhecido: "${command}".\n\n${HELP}`);

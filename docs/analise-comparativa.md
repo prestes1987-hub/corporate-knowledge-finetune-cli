@@ -1,7 +1,7 @@
 # Análise comparativa: com x sem grounding, base x fine-tunado
 
 > Resultados reais da execução do notebook [colab/finetune_qlora.ipynb](../colab/finetune_qlora.ipynb) no Google Colab
-> (GPU T4), no conjunto de teste de 20 perguntas. Respostas brutas: [dataset/predictions.jsonl](../dataset/predictions.jsonl).
+> (GPU T4), no conjunto de teste de 20 perguntas. O notebook está salvo com todas as saídas da execução. Respostas brutas: [dataset/predictions.jsonl](../dataset/predictions.jsonl).
 > Relatório completo, pergunta a pergunta: [relatorio-avaliacao.md](relatorio-avaliacao.md). O relatório é
 > reproduzível: `python colab/avaliacao.py dataset/predictions.jsonl --report docs/relatorio-avaliacao.md` gera o
 > mesmo arquivo.
@@ -16,7 +16,15 @@
 | Fine-tunado, sem grounding | 3.1% | 0.0% | 0.0% | 25.0% | 6.2% | 35.0% | 23.3% |
 
 Modelo: `Qwen/Qwen2.5-1.5B-Instruct` em 4-bit NF4 (QLoRA), com adaptador LoRA r=16 em `q/k/v/o_proj`, treinado por
-3 épocas em 50 exemplos. O adaptador está em [adapter/](../adapter/).
+3 épocas em 50 exemplos (39 passos). O adaptador está em [adapter/](../adapter/).
+
+Na execução foram treinados 4.358.144 parâmetros (0,28% dos 1,55 bilhão do modelo). A loss de treino, calculada só
+sobre as respostas, foi registrada a cada 2 passos e caiu de 0,565 para valores entre 0,12 e 0,29 no fim. A loss parte
+baixa porque boa parte da resposta-alvo é copiada do contexto; o que o treino ensina é o formato, a citação e a recusa.
+
+A execução registrada usou uma célula extra de correção (adaptadores LoRA convertidos para float32 antes do treino),
+necessária para treinar em fp16 na T4. Essa correção já está incorporada à versão limpa
+[colab/finetune_qlora_limpo.ipynb](../colab/finetune_qlora_limpo.ipynb).
 
 ## As três hipóteses da justificativa
 

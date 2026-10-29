@@ -1,7 +1,7 @@
 import { REFUSAL, SYSTEM_GROUNDED, SYSTEM_UNGROUNDED } from "../context.ts";
 
 /**
- * Gera colab/finetune_qlora.ipynb. As células Python ficam aqui (String.raw, sem escapes) e as
+ * Gera colab/finetune_qlora_limpo.ipynb (versão sem saídas, para rodar do zero). As células Python ficam aqui (String.raw, sem escapes) e as
  * constantes da estrutura de contexto são injetadas de src/context.ts — o notebook nunca diverge
  * do prompt usado no dataset e na CLI.
  */

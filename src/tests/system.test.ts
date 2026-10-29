@@ -142,7 +142,23 @@ describe("notebook", () => {
       assert.ok(code.includes(piece), piece);
     }
     assert.ok(!markdown.includes("\\`"));
-    assert.equal(readFileSync("colab/finetune_qlora.ipynb", "utf8"), content, "rode npm run notebook");
+    assert.equal(readFileSync("colab/finetune_qlora_limpo.ipynb", "utf8"), content, "rode npm run notebook");
+  });
+
+  it("o notebook executado no Colab rodou sem erros, com o mesmo prompt, e reporta os resultados versionados", () => {
+    type Output = { output_type: string; text?: string | string[] };
+    const nb = JSON.parse(readFileSync("colab/finetune_qlora.ipynb", "utf8")) as {
+      cells: Array<{ cell_type: string; source: string | string[]; outputs?: Output[] }>;
+    };
+    const code = nb.cells.filter((c) => c.cell_type === "code");
+    const outputs = code.flatMap((c) => c.outputs ?? []);
+    assert.ok(code.every((c) => (c.outputs ?? []).length > 0 || [c.source].flat().join("").startsWith("from tqdm")), "célula sem execução");
+    assert.ok(!outputs.some((o) => o.output_type === "error"), "célula com erro");
+    assert.ok(code.map((c) => [c.source].flat().join("")).join("\n").includes(`SYSTEM_GROUNDED = ${JSON.stringify(SYSTEM_GROUNDED)}`));
+    const stdout = outputs.map((o) => [o.text ?? ""].flat().join("")).join("\n");
+    const report = readFileSync("docs/relatorio-avaliacao.md", "utf8");
+    const finalRow = report.split("\n").find((l) => l.startsWith("| Fine-tunado, com grounding |"))!;
+    assert.ok(stdout.includes(finalRow), "a tabela do notebook difere de docs/relatorio-avaliacao.md");
   });
 });
 

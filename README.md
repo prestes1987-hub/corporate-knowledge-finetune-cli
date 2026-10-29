@@ -9,7 +9,9 @@ compara o comportamento **com e sem grounding** e com e sem **fine-tuning (QLoRA
 - **Dataset**: 50 exemplos de treino + 20 de teste, em `.parquet` e `.jsonl`. Cada exemplo traz o contexto real recuperado
   pela busca, distratores incluídos.
 - **Baseline documentada**: modelo base sem e com grounding, ver [docs/baseline.md](docs/baseline.md).
-- **Fine-tuning QLoRA + LoRA** no Google Colab (T4): [colab/finetune_qlora.ipynb](colab/finetune_qlora.ipynb).
+- **Fine-tuning QLoRA + LoRA** no Google Colab (T4):
+  - [colab/finetune_qlora.ipynb](colab/finetune_qlora.ipynb): **executado**, com todas as saídas, como evidência;
+  - [colab/finetune_qlora_limpo.ipynb](colab/finetune_qlora_limpo.ipynb): versão sem saídas, para rodar do zero.
 - **Avaliação quantitativa**: [colab/avaliacao.py](colab/avaliacao.py) para as respostas dos modelos e `npm run eval` para a recuperação.
 - **Justificativa e orientação de aplicabilidade**: [docs/justificativa.md](docs/justificativa.md).
 - **Análise comparativa com resultados reais**: [docs/analise-comparativa.md](docs/analise-comparativa.md).
@@ -63,7 +65,7 @@ npm test
 |---|---|
 | `npm run kb` | lista documentos e seções da base |
 | `npm run build-dataset` | gera `dataset/{train,test}.{parquet,jsonl}` e [docs/exemplos.md](docs/exemplos.md) |
-| `npm run notebook` | gera `colab/finetune_qlora.ipynb` (com o prompt injetado de `src/context.ts`) |
+| `npm run notebook` | gera `colab/finetune_qlora_limpo.ipynb` (com o prompt injetado de `src/context.ts`) |
 | `npm run eval` | avalia a recuperação e gera [docs/retrieval-report.md](docs/retrieval-report.md) |
 | `npm run build` | os três acima |
 | `npm run ask -- "…"` | responde com grounding (`--no-grounding`, `--compare`, `--debug`, `--threshold`, `--top-k`, `--offline`) |
@@ -88,7 +90,7 @@ Para servir pela CLI: `model.merge_and_unload()`, exportar para Ollama/vLLM e ap
 ### Fine-tuning no Colab
 
 1. `npm run build-dataset`.
-2. Abra [colab/finetune_qlora.ipynb](colab/finetune_qlora.ipynb) no Colab e selecione a GPU **T4**.
+2. Abra [colab/finetune_qlora_limpo.ipynb](colab/finetune_qlora_limpo.ipynb) no Colab e selecione a GPU **T4**.
 3. Envie `dataset/train.parquet`, `dataset/test.parquet` e `colab/avaliacao.py` quando a célula pedir.
 4. Execute tudo (≈ 15–20 min). Saídas: `lora-adapter.zip`, `predictions.jsonl` e `relatorio-avaliacao.md`.
 
@@ -175,6 +177,7 @@ Exemplos legíveis: [docs/exemplos.md](docs/exemplos.md).
 | Base | `Qwen/Qwen2.5-1.5B-Instruct`, 4-bit NF4 + double quant (QLoRA) |
 | LoRA | r=16, alpha=32, dropout 0.05, `q_proj`/`k_proj`/`v_proj`/`o_proj` |
 | Treino | TRL `SFTTrainer`, formato *prompt-completion* (loss só na resposta), 3 épocas, batch 4, lr 2e-4 cosine, fp16 |
+| Execução | 39 passos; 4,36 M de parâmetros treináveis (0,28%); loss de 0,565 → 0,12–0,29 |
 | Saída | adaptador LoRA em [adapter/lora-adapter.zip](adapter/lora-adapter.zip) (~17 MB de pesos; config em [adapter/adapter_config.json](adapter/adapter_config.json)) |
 
 ## Avaliação e análise comparativa
@@ -222,7 +225,7 @@ src/
   eval/                  avaliação da recuperação
   tests/                 testes (node:test)
 dataset/                 train/test em .parquet e .jsonl (gerados) + predictions.jsonl (respostas reais do Colab)
-colab/                   finetune_qlora.ipynb (gerado) e avaliacao.py
+colab/                   finetune_qlora.ipynb (executado), finetune_qlora_limpo.ipynb (gerado) e avaliacao.py
 adapter/                 adaptador LoRA treinado (lora-adapter.zip) e sua configuração
 docs/                    justificativa, baseline, análise comparativa, relatório de avaliação,
                          exemplos, relatório de recuperação
