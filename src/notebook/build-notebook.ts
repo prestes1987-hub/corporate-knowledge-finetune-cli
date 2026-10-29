@@ -220,14 +220,7 @@ lora_config = LoraConfig(
 )
 
 model = get_peft_model(model, lora_config)
-
-# Adaptadores LoRA em fp32: o GradScaler do fp16 não aceita gradientes em bf16/fp16.
-for param in model.parameters():
-    if param.requires_grad:
-        param.data = param.data.float()
-
 model.print_trainable_parameters()
-print({p.dtype for p in model.parameters() if p.requires_grad})
 `),
     code(String.raw`
 from trl import SFTConfig, SFTTrainer
@@ -253,6 +246,13 @@ trainer = SFTTrainer(
         seed=42,
     ),
 )
+
+# O SFTTrainer converte os adaptadores de modelos quantizados para bf16 ao ser criado. A T4 não tem
+# bf16 e o GradScaler do fp16 não aceita gradientes bf16, então eles voltam para fp32 antes do treino.
+for param in trainer.model.parameters():
+    if param.requires_grad:
+        param.data = param.data.float()
+print("dtype dos adaptadores:", {p.dtype for p in trainer.model.parameters() if p.requires_grad})
 
 trainer.train()
 trainer.save_model("./lora-adapter")
