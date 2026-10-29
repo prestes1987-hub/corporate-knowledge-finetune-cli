@@ -8,7 +8,7 @@
 | Item | Valor |
 |---|---|
 | Modelo base | `Qwen/Qwen2.5-1.5B-Instruct` |
-| Quantização | 4-bit NF4, double quantization, compute dtype fp16 (`BitsAndBytesConfig`) — a mesma base usada no QLoRA |
+| Quantização | 4-bit NF4, double quantization, compute dtype fp16 (`BitsAndBytesConfig`); demais camadas em fp16 — a mesma base usada no QLoRA |
 | Geração | greedy (`do_sample=False`), `max_new_tokens=200`, chat template do modelo |
 | Conjunto de teste | `dataset/test.parquet` — 20 perguntas: 15 na base, 1 multi-documento, 4 fora da base |
 | Contexto (modo com grounding) | 3 trechos recuperados por BM25, formatados por `src/context.ts` (coluna `prompt`) |

@@ -110,7 +110,10 @@ bnb_config = BitsAndBytesConfig(
 )
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, quantization_config=bnb_config, device_map="auto")
+# dtype fp16 explícito: a T4 não tem bf16, e o transformers recente carregaria o Qwen em bf16 por padrão.
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID, quantization_config=bnb_config, dtype=torch.float16, device_map="auto"
+)
 model.eval()
 print(f"Memória da GPU: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
 `),
@@ -217,7 +220,14 @@ lora_config = LoraConfig(
 )
 
 model = get_peft_model(model, lora_config)
+
+# Adaptadores LoRA em fp32: o GradScaler do fp16 não aceita gradientes em bf16/fp16.
+for param in model.parameters():
+    if param.requires_grad:
+        param.data = param.data.float()
+
 model.print_trainable_parameters()
+print({p.dtype for p in model.parameters() if p.requires_grad})
 `),
     code(String.raw`
 from trl import SFTConfig, SFTTrainer
